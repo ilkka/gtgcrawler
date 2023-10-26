@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="gollum" type="mix">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/_build/dev/lib/gollum/ebin" />
+      <root url="file://$PROJECT_DIR$/_build/dev/lib/gollum/ebin" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/deps/gollum/lib" />
+      <root url="file://$PROJECT_DIR$/deps/gollum/lib" />
+      <root url="file://$PROJECT_DIR$/deps/gollum/lib" />
+      <root url="file://$PROJECT_DIR$/deps/gollum/lib" />
+    </SOURCES>
+  </library>
+</component>
