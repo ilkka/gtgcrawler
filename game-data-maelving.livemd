@@ -1,0 +1,146 @@
+<!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/WikiGameYearSpider_2023_10_26_11_40_39_498329_7be4ce46-73f4-11ee-81e0-0242ac110002.jl"},"name":"WikiGameYearSpider_2023_10_26_11_40_39_498329_7be4ce46-73f4-11ee-81e0-0242ac110002.jl","type":"file"},{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/results-2022.jl"},"name":"results-2022.jl","type":"file"}]} -->
+
+# Game data mälving
+
+```elixir
+Mix.install(
+  [
+    {:poison, "~> 3.1"},
+    {:crawly, "~> 0.16"},
+    {:floki, "~> 0.35"},
+    {:kino_vega_lite, "~> 0.1.10"}
+  ],
+  config: [
+    crawly: [
+      middlewares: [
+        {Crawly.Middlewares.UserAgent,
+         user_agents: [
+           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+         ]}
+      ],
+      pipelines: [
+        Crawly.Pipelines.JSONEncoder,
+        {Crawly.Pipelines.WriteToFile, folder: "/data", extension: "jl"}
+      ]
+    ]
+  ]
+)
+```
+
+## Get game titles from data
+
+Read the JSON lines data, decode the JSON and grab the game titles.
+
+```elixir
+games =
+  File.read!("/data/results-2022.jl")
+  |> String.splitter("\n")
+  |> Stream.filter(fn s -> String.length(s) > 0 end)
+  |> Stream.map(&Poison.decode!/1)
+  |> Enum.into([])
+  |> Enum.map(fn g -> Map.fetch!(g, "game") end)
+```
+
+## Get publication years from Wikipedia
+
+Let's hope they don't throttle us...
+
+```elixir
+defmodule WikiGameYearSpider do
+  use Crawly.Spider
+
+  @impl Crawly.Spider
+  def base_url do
+    "https://en.wikipedia.org/wiki"
+  end
+
+  defp game_to_url(game) do
+    wikiurl_title =
+      game
+      |> String.replace(~r/Sid Meier\S+s /, "")
+      |> String.replace(~r/NieR:/, "Nier: ")
+      |> String.replace(" ", "+")
+
+    "https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&titles=#{wikiurl_title}&languages=en&format=json"
+  end
+
+  @impl Crawly.Spider
+  def init(opts) do
+    urls =
+      opts[:games]
+      |> Enum.map(&game_to_url/1)
+
+    [start_urls: urls]
+  end
+
+  @impl Crawly.Spider
+  def parse_item(response) do
+    item =
+      case Poison.decode(response.body) do
+        {:ok, data} ->
+          case data["entities"] |> Enum.at(0) do
+            {"-1", _} ->
+              %{url: response.request_url, error: "Game not found"}
+
+            {_entityid, entity} ->
+              {:ok, pubdate, _offset} =
+                entity
+                |> get_in(["claims", "P577"])
+                |> Enum.at(0)
+                |> get_in(["mainsnak", "datavalue", "value", "time"])
+                |> DateTime.from_iso8601()
+
+              game =
+                entity
+                |> get_in(["labels", "en", "value"])
+
+              %{year: pubdate.year, game: game}
+          end
+
+        _ ->
+          %{url: response.request_url, error: "Error from API"}
+      end
+
+    %Crawly.ParsedItem{
+      :items => [item],
+      :requests => []
+    }
+  end
+end
+```
+
+```elixir
+Crawly.Engine.start_spider(WikiGameYearSpider, games: games)
+```
+
+```elixir
+Crawly.Engine.stop_spider(WikiGameYearSpider)
+```
+
+## Read the year data
+
+```elixir
+games_years =
+  File.read!(
+    "/data/WikiGameYearSpider_2023_10_26_11_40_39_498329_7be4ce46-73f4-11ee-81e0-0242ac110002.jl"
+  )
+  |> String.splitter("\n")
+  |> Stream.filter(fn s -> String.length(s) > 0 end)
+  |> Stream.map(&Poison.decode!/1)
+  |> Enum.into([])
+  |> Enum.filter(fn g -> Map.has_key?(g, "game") end)
+
+length(games_years)
+```
+
+<!-- livebook:{"attrs":{"chart_title":null,"height":300,"layers":[{"active":true,"chart_type":"bar","color_field":null,"color_field_aggregate":null,"color_field_bin":null,"color_field_scale_scheme":null,"color_field_type":null,"data_variable":"games_years","geodata_color":"blue","latitude_field":null,"longitude_field":null,"x_field":"year","x_field_aggregate":null,"x_field_bin":null,"x_field_scale_type":"linear","x_field_type":"quantitative","y_field":"__count__","y_field_aggregate":null,"y_field_bin":null,"y_field_scale_type":null,"y_field_type":null}],"vl_alias":"Elixir.VegaLite","width":600},"chunks":null,"kind":"Elixir.KinoVegaLite.ChartCell","livebook_object":"smart_cell"} -->
+
+```elixir
+VegaLite.new(width: 600, height: 300)
+|> VegaLite.data_from_values(games_years, only: ["year"])
+|> VegaLite.mark(:bar)
+|> VegaLite.encode_field(:x, "year", type: :quantitative, scale: [type: :linear])
+|> VegaLite.encode(:y, aggregate: :count)
+```
+
+<!-- livebook:{"offset":4410,"stamp":{"token":"XCP.CcLpUhvL5-juCvZs9hNd_8u7W-NgD9MJm0hp5gPvcwmknFig3pYbbwOG_X1T3nV2oeojAXxf7w5A_4MvmoAHMTJnFF31sISoca71QA","version":2}} -->
