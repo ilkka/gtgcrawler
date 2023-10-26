@@ -1,6 +1,6 @@
 # Gtgcrawler
 
-**TODO: Add description**
+Crawl Guess the Game answers from levelsanswers.com. They only have the answers from 2022 but eh.
 
 ## Installation
 
@@ -19,3 +19,13 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/gtgcrawler>.
 
+## Running it
+
+Run it by starting an IEx shell and starting the spider:
+
+```shell
+$ iex -S mix
+iex(1)> Crawly.Engine.start_spider(Gtgcrawler.GtgSpider)
+```
+
+The results will appear in `.jl` files in `/tmp`.
