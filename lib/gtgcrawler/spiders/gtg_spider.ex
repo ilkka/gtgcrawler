@@ -1,4 +1,7 @@
 defmodule Gtgcrawler.GtgSpider do
+  @moduledoc """
+  This module contains the implementation of the spider that will crawl the levelsanswers.com website.
+  """
   use Crawly.Spider
 
   @impl Crawly.Spider
@@ -39,7 +42,7 @@ defmodule Gtgcrawler.GtgSpider do
       ],
       :requests =>
         if(
-        next_request.url ==
+          next_request.url ==
             "https://www.levelsanswers.com/guess-the-game-daily-puzzle-january-1/",
           do: [],
           else: [next_request]
