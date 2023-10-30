@@ -1,4 +1,4 @@
-<!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/WikiGameYearSpider_f310dbfa-7731-11ee-a5b4-0242ac110002.jl"},"name":"WikiGameYearSpider_f310dbfa-7731-11ee-a5b4-0242ac110002.jl","type":"file"}]} -->
+<!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/GamesstatsSpider_837d495c-7738-11ee-bf8d-0242ac110002.jl"},"name":"GamesstatsSpider_837d495c-7738-11ee-bf8d-0242ac110002.jl","type":"file"},{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/WikiGameYearSpider_f310dbfa-7731-11ee-a5b4-0242ac110002.jl"},"name":"WikiGameYearSpider_f310dbfa-7731-11ee-a5b4-0242ac110002.jl","type":"file"}]} -->
 
 # Game data mälving
 
@@ -362,27 +362,29 @@ First we need to load the jsonlines publication data, but we don't need everythi
 ```elixir
 publications_per_year =
   File.stream!(
-    "/data/GamesstatsSpider_2023_10_30_13_47_19_306463_ca551b74-772a-11ee-8bfd-0242ac110002.jl",
+    "/data/GamesstatsSpider_837d495c-7738-11ee-bf8d-0242ac110002.jl",
     [],
     :line
   )
   |> Stream.map(&Poison.decode!/1)
-  |> Enum.reduce(%{}, fn x, acc ->
-    year = x["year"]
-
-    acc
-    |> Map.update(year, 1, &(&1 + 1))
-  end)
+  |> Enum.into([])
 ```
-
-<!-- livebook:{"attrs":{"chart_title":null,"height":300,"layers":[{"active":true,"chart_type":"bar","color_field":null,"color_field_aggregate":null,"color_field_bin":null,"color_field_scale_scheme":null,"color_field_type":null,"data_variable":"games_years","geodata_color":"blue","latitude_field":null,"longitude_field":null,"x_field":"year","x_field_aggregate":null,"x_field_bin":null,"x_field_scale_type":"linear","x_field_type":"quantitative","y_field":"__count__","y_field_aggregate":null,"y_field_bin":null,"y_field_scale_type":null,"y_field_type":null}],"vl_alias":"Elixir.VegaLite","width":600},"chunks":null,"kind":"Elixir.KinoVegaLite.ChartCell","livebook_object":"smart_cell"} -->
 
 ```elixir
 VegaLite.new(width: 600, height: 300)
-|> VegaLite.data_from_values(games_years, only: ["year"])
-|> VegaLite.mark(:bar)
-|> VegaLite.encode_field(:x, "year", type: :quantitative, scale: [type: :linear])
-|> VegaLite.encode(:y, aggregate: :count)
+|> VegaLite.layers([
+  VegaLite.new()
+  |> VegaLite.data_from_values(games_years, only: ["year"])
+  |> VegaLite.mark(:bar, color: "blue")
+  |> VegaLite.encode_field(:x, "year", type: :quantitative, scale: [type: :linear], title: "Year")
+  |> VegaLite.encode(:y, aggregate: :count, title: "GtG answers"),
+  VegaLite.new()
+  |> VegaLite.data_from_values(publications_per_year, only: ["year"])
+  |> VegaLite.mark(:line, color: "green")
+  |> VegaLite.encode_field(:x, "year", type: :quantitative)
+  |> VegaLite.encode(:y, aggregate: :count, title: "Published games")
+])
+|> VegaLite.resolve(:scale, y: :independent)
 ```
 
-<!-- livebook:{"offset":11903,"stamp":{"token":"XCP.NIi3S4KpKfhQo1_GsTQOaYLz-zXg4zHFKl_V2OSw2KyOJxCZp5zPH8qecnuCOgw_c_e8c_zAiUhp9moD1ZLIBIwHt-kcbPuateACgw","version":2}} -->
+<!-- livebook:{"offset":11714,"stamp":{"token":"XCP.QLU-Yapui6xlkUG7VEOLNUbm_j5cteIfG1bQ8yURdYICd9m2Em3WFqj5gQJ_P0LwRfLNMg92zn19GgtxZYQQbVMTtNxBEIsAcjS8lw","version":2}} -->
