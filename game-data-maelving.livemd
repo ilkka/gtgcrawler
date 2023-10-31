@@ -132,12 +132,12 @@ end
 
 ```elixir
 # Uncomment to actually crawl (or just use existing data, below):
-Crawly.Engine.start_spider(WikiGameYearSpider, games: games)
+# Crawly.Engine.start_spider(WikiGameYearSpider, games: games)
 ```
 
 ```elixir
 # Uncomment and evaluate to stop a run:
-Crawly.Engine.stop_spider(WikiGameYearSpider)
+# Crawly.Engine.stop_spider(WikiGameYearSpider)
 ```
 
 ## Read the Wikidata results
@@ -225,7 +225,7 @@ Finally we need to know how to grab the year from the URL, since we want to stor
 |> String.replace(~r/.*\/ReleaseYear\/([0-9]+).*/, "\\1")
 ```
 
-Ok, that proto seems to work, now define the spider:
+Test generating page links:
 
 ```elixir
 last_page_num =
@@ -234,6 +234,8 @@ last_page_num =
 2..last_page_num
 |> Enum.map(fn n -> "https://videogamesstats.com/ReleaseYear/#{year}/page/#{n}" end)
 ```
+
+Ok, that proto seems to work, now define the spider:
 
 ```elixir
 defmodule GamesstatsSpider do
@@ -295,7 +297,7 @@ defmodule GamesstatsSpider do
   end
 
   # Finds links to pages for listings of games for individual years from the document,
-  # and returns a list of URLs for those pages.
+  # and returns a list of requests for those pages.
   #
   # The years probably have more than one page of games, but these will be the first pages.
   defp make_year_requests(document) do
@@ -307,7 +309,7 @@ defmodule GamesstatsSpider do
   end
 
   # Takes the first page of results doc, finds out how many pages the year has in total,
-  # and returns a list of URLs for pages 2..n.
+  # and returns a list of requests for pages 2..n.
   defp make_page_requests(document, year) do
     last_page_num =
       document
@@ -321,17 +323,19 @@ defmodule GamesstatsSpider do
     # This actually breaks the process for years with only one game, because
     # last_page_num is nil and that's invalid. Anyway, as these years are such
     # outliers (only a few in the 70s to early 80s) we don't care.
-    Logger.info("Making page requests for year #{year} from 2 to #{last_page_num}")
-
     2..last_page_num
     |> Enum.map(fn n -> "https://videogamesstats.com/ReleaseYear/#{year}/page/#{n}/" end)
     |> Enum.map(&Crawly.Utils.request_from_url/1)
   end
 
+  # Document is a game listing page, so find all the game titles
+  # and return a list of maps we want to store, including the title
+  # and the publication year.
   defp parse_games_from_page(document, year) do
     document
     |> Floki.find(".entry-content article a")
     |> Floki.attribute("title")
+    # there's multiple links to the same game, drop dupes
     |> Enum.uniq()
     |> Enum.map(fn g -> %{:year => String.to_integer(year), :game => g} end)
   end
@@ -341,10 +345,13 @@ end
 Now run the videogamesstats spider:
 
 ```elixir
-Crawly.Engine.start_spider(GamesstatsSpider)
+# uncomment or use static data
+# Crawly.Engine.start_spider(GamesstatsSpider)
 ```
 
 ```elixir
+# this can be used to monitor the execution, i.e. what requests
+# are in the queue.
 {:requests, req} = Crawly.RequestsStorage.requests(GamesstatsSpider)
 
 req
@@ -352,7 +359,8 @@ req
 ```
 
 ```elixir
-Crawly.Engine.stop_spider(GamesstatsSpider)
+# uncomment to stop prematurely
+# Crawly.Engine.stop_spider(GamesstatsSpider)
 ```
 
 ## Chart the results against number of games published
@@ -387,4 +395,4 @@ VegaLite.new(width: 600, height: 300)
 |> VegaLite.resolve(:scale, y: :independent)
 ```
 
-<!-- livebook:{"offset":11630,"stamp":{"token":"XCP.wd1TxiyYiXKwTYvrgcIp1B_N8Aikm95_qDm9D6fUFU9lMCS0YLgQ-F1SN-ZM_lIQ3jgSxgtNWTDBq5yS0bpAtM4e_PUrrQ3vKM2BJw","version":2}} -->
+<!-- livebook:{"offset":11958,"stamp":{"token":"XCP.b1UIbqlpR93HQPhdBUyOs8TepqHcxoC9IwhY3wTnNgFqvqfjmC9C7_p9ELrAPu6W9NciVexCAJA0l9IlAXYBcIdhbUOhqcGD2YmHZw","version":2}} -->
