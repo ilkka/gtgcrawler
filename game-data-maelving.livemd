@@ -357,7 +357,7 @@ Crawly.Engine.stop_spider(GamesstatsSpider)
 
 ## Chart the results against number of games published
 
-First we need to load the jsonlines publication data, but we don't need everything, we just need to count games by year. The file is probably not too big to hold in memory but we read in a stream anyway, for giggles.
+First we need to load the publication data. We read everything, the dataset is not very big and this makes it simple to chart later.
 
 ```elixir
 publications_per_year =
@@ -387,4 +387,4 @@ VegaLite.new(width: 600, height: 300)
 |> VegaLite.resolve(:scale, y: :independent)
 ```
 
-<!-- livebook:{"offset":11714,"stamp":{"token":"XCP.QLU-Yapui6xlkUG7VEOLNUbm_j5cteIfG1bQ8yURdYICd9m2Em3WFqj5gQJ_P0LwRfLNMg92zn19GgtxZYQQbVMTtNxBEIsAcjS8lw","version":2}} -->
+<!-- livebook:{"offset":11630,"stamp":{"token":"XCP.wd1TxiyYiXKwTYvrgcIp1B_N8Aikm95_qDm9D6fUFU9lMCS0YLgQ-F1SN-ZM_lIQ3jgSxgtNWTDBq5yS0bpAtM4e_PUrrQ3vKM2BJw","version":2}} -->
