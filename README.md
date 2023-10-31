@@ -33,9 +33,10 @@ The crawlers try to be Nice in a couple of ways:
 
 ## Running it
 
-Run it by installing [livebook](https://livebook.dev), opening the included
-livebook and executing the cells. It is not necessary to re-run the crawlers,
+Run it by installing [livebook](https://livebook.dev), opening [game-data-maelving.livemd](game-data-maelving.livemd) and executing the cells. It is not necessary to re-run the crawlers,
 instead one can use the data files included in the repo.
+
+The `start-livebook.sh` script can be used to run livebook in Docker.
 
 ## Results
 
