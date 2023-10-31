@@ -41,9 +41,16 @@ The `start-livebook.sh` script can be used to run livebook in Docker.
 ## Results
 
 This is still far removed from actual science, but there seems to be a
-correlation between the number of overall published games (green line)
-and the number of GtG puzzle answers (blue bars) for a given year.
-That makes me conclude that there is no significant bias towards more
-recent games in GtG.
+somewhat weak correlation between the number of overall published games (green line)
+and the number of GtG puzzle answers (blue bars) for a given year. The hump in publications in the 90s
+is interesting especially as it is not reflected in the GtG data. On the other hand there are
+a number of games missing from the GtG data, due to not being able to find the correct Wikipedia
+page title (or the page not existing at all). There have been about 530 days of GtG as of time of
+writing, and I was able to scrape publication years for about 350 of those, so about 1/3 of the
+games are missing from the data.
+
+I can see how there might be a bias affecting what games even _get_ Wikipedia pages, but if we make
+the not-too-outrageous-in-my-opinion assumption that the missing GtG year data is evenly distributed,
+I would be happy to conclude that there is no significant bias towards more recent games in GtG.
 
 ![graph showing the distribution of GtG answers vs published games per year](docs/files/visualization.png)
