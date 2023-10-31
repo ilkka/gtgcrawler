@@ -1,4 +1,4 @@
-<!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/WikiGameYearSpider_2023_10_26_11_40_39_498329_7be4ce46-73f4-11ee-81e0-0242ac110002.jl"},"name":"WikiGameYearSpider_2023_10_26_11_40_39_498329_7be4ce46-73f4-11ee-81e0-0242ac110002.jl","type":"file"},{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/WikiGameYearSpider_2023_10_27_19_12_32_253638_c66c988c-74fc-11ee-8266-0242ac110002.jl"},"name":"WikiGameYearSpider_2023_10_27_19_12_32_253638_c66c988c-74fc-11ee-8266-0242ac110002.jl","type":"file"},{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/results-2022.jl"},"name":"results-2022.jl","type":"file"}]} -->
+<!-- livebook:{"file_entries":[{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/GamesstatsSpider_837d495c-7738-11ee-bf8d-0242ac110002.jl"},"name":"GamesstatsSpider_837d495c-7738-11ee-bf8d-0242ac110002.jl","type":"file"},{"file":{"file_system_id":"local","file_system_type":"local","path":"/data/WikiGameYearSpider_f310dbfa-7731-11ee-a5b4-0242ac110002.jl"},"name":"WikiGameYearSpider_f310dbfa-7731-11ee-a5b4-0242ac110002.jl","type":"file"}]} -->
 
 # Game data mälving
 
@@ -13,14 +13,19 @@ Mix.install(
   config: [
     crawly: [
       middlewares: [
+        Crawly.Middlewares.DomainFilter,
+        # be nice and honor robots.txt
+        Crawly.Middlewares.RobotsTxt,
+        Crawly.Middlewares.UniqueRequest,
         {Crawly.Middlewares.UserAgent,
          user_agents: [
-           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+           # be nice and say who we are
+           "Mozilla/5.0 (compatible; guess the game analysis bot; github.com/ilkka)"
          ]}
       ],
       pipelines: [
         Crawly.Pipelines.JSONEncoder,
-        {Crawly.Pipelines.WriteToFile, folder: "/data", extension: "jl"}
+        {Crawly.Pipelines.WriteToFile, folder: "/data", extension: "jl", include_timestamp: false}
       ]
     ]
   ]
@@ -29,16 +34,16 @@ Mix.install(
 
 ## Get game titles from data
 
-Read the JSON lines data, decode the JSON and grab the game titles.
+If we used the crawler from the mix project, we could use this code to parse the results from that. Read the JSON lines data, decode the JSON and grab the game titles.
 
 ```elixir
-games =
-  File.read!("/data/results-2022.jl")
-  |> String.splitter("\n")
-  |> Stream.filter(fn s -> String.length(s) > 0 end)
-  |> Stream.map(&Poison.decode!/1)
-  |> Enum.into([])
-  |> Enum.map(fn g -> Map.fetch!(g, "game") end)
+# games =
+#  File.read!("/data/results-2022.jl")
+#  |> String.splitter("\n")
+#  |> Stream.filter(fn s -> String.length(s) > 0 end)
+#  |> Stream.map(&Poison.decode!/1)
+#  |> Enum.into([])
+#  |> Enum.map(fn g -> Map.fetch!(g, "game") end)
 ```
 
 ## Get game titles from API
@@ -51,9 +56,13 @@ games =
   answers
   |> Map.get("puzzle_titles")
   |> Enum.map(&List.first/1)
+
+length(games)
 ```
 
 ## Get publication years from Wikipedia
+
+We read Wikidata because they provide structured data based on page title. The trouble with that is that the page titles are not always easily guessable from the game title. For example we need to drop "Sid Meier's" from Civilization titles, and another particular change is "NieR:Automata" where the actual Wikipedia page title is a less stylized "Nier: Automata". Probably many missing datapoints are because of missing transformations here.
 
 Let's hope they don't throttle us...
 
@@ -63,7 +72,7 @@ defmodule WikiGameYearSpider do
 
   @impl Crawly.Spider
   def base_url do
-    "https://en.wikipedia.org/wiki"
+    "https://www.wikidata.org"
   end
 
   defp game_to_url(game) do
@@ -122,21 +131,20 @@ end
 ```
 
 ```elixir
-# Uncomment to actually crawl:
+# Uncomment to actually crawl (or just use existing data, below):
 Crawly.Engine.start_spider(WikiGameYearSpider, games: games)
 ```
 
 ```elixir
+# Uncomment and evaluate to stop a run:
 Crawly.Engine.stop_spider(WikiGameYearSpider)
 ```
 
-## Read the year data
+## Read the Wikidata results
 
 ```elixir
 games_years =
-  File.read!(
-    "/data/WikiGameYearSpider_2023_10_27_19_12_32_253638_c66c988c-74fc-11ee-8266-0242ac110002.jl"
-  )
+  File.read!("/data/WikiGameYearSpider_f310dbfa-7731-11ee-a5b4-0242ac110002.jl")
   |> String.splitter("\n")
   |> Stream.filter(fn s -> String.length(s) > 0 end)
   |> Stream.map(&Poison.decode!/1)
@@ -146,14 +154,237 @@ games_years =
 length(games_years)
 ```
 
-<!-- livebook:{"attrs":{"chart_title":null,"height":300,"layers":[{"active":true,"chart_type":"bar","color_field":null,"color_field_aggregate":null,"color_field_bin":null,"color_field_scale_scheme":null,"color_field_type":null,"data_variable":"games_years","geodata_color":"blue","latitude_field":null,"longitude_field":null,"x_field":"year","x_field_aggregate":null,"x_field_bin":null,"x_field_scale_type":"linear","x_field_type":"quantitative","y_field":"__count__","y_field_aggregate":null,"y_field_bin":null,"y_field_scale_type":null,"y_field_type":null}],"vl_alias":"Elixir.VegaLite","width":600},"chunks":null,"kind":"Elixir.KinoVegaLite.ChartCell","livebook_object":"smart_cell"} -->
+## Crawl game publication data
+
+For this we need another spider since we're using a different site.
+
+First though, some prototyping on how we're gonna do this. How do we generate the requests for the individual years?
+
+```elixir
+{:ok, document} =
+  "https://videogamesstats.com/video-games-by-release-year-1971-today/"
+  |> Crawly.fetch()
+  |> Map.get(:body)
+  |> Floki.parse_document()
+
+document
+|> Floki.find(".entry-content ul li a")
+|> Floki.attribute("href")
+|> Enum.filter(fn x -> String.match?(x, ~r/\/ReleaseYear\/[0-9]+/) end)
+```
+
+Alrighty, then how to find all the pages for a given year? Find the page URLs, find the biggest page number, boom.
+
+```elixir
+document =
+  "https://videogamesstats.com/ReleaseYear/2009/"
+  |> Crawly.fetch()
+  |> Map.get(:body)
+  |> Floki.parse_document!()
+```
+
+```elixir
+last_page_num =
+  document
+  |> Floki.find("a.page-numbers")
+  |> Floki.attribute("href")
+  |> Enum.map(fn s -> String.replace(s, ~r/.*\/page\/([0-9]+).*/, "\\1") end)
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.sort()
+  |> List.last()
+```
+
+Make links:
+
+```elixir
+template_page_link =
+  document
+  |> Floki.find("a.page-numbers")
+  |> Floki.attribute("href")
+  |> List.first()
+
+for n <- 2..last_page_num do
+  "#{String.replace(template_page_link, ~r/\/page\/.*/, "")}/page/#{n}"
+end
+```
+
+Ok then how to find games from a game listing page and create data items from that:
+
+```elixir
+document
+|> Floki.find(".entry-content article a")
+|> Floki.attribute("title")
+|> Enum.uniq()
+|> Enum.map(fn g -> %{:year => "2009", :game => g} end)
+```
+
+Finally we need to know how to grab the year from the URL, since we want to store that with the items. Otherwise we can't really do year stats.
+
+```elixir
+"https://videogamesstats.com/ReleaseYear/2009/page/5"
+|> String.replace(~r/.*\/ReleaseYear\/([0-9]+).*/, "\\1")
+```
+
+Ok, that proto seems to work, now define the spider:
+
+```elixir
+last_page_num =
+  year = 2009
+
+2..last_page_num
+|> Enum.map(fn n -> "https://videogamesstats.com/ReleaseYear/#{year}/page/#{n}" end)
+```
+
+```elixir
+defmodule GamesstatsSpider do
+  use Crawly.Spider
+
+  @impl Crawly.Spider
+  def base_url do
+    "https://videogamesstats.com/"
+  end
+
+  @impl Crawly.Spider
+  def init(_options \\ %{}) do
+    [
+      start_urls: ["https://videogamesstats.com/video-games-by-release-year-1971-today/"]
+    ]
+  end
+
+  @impl Crawly.Spider
+  def parse_item(response) do
+    # Always need to parse
+    case Floki.parse_document(response.body) do
+      {:ok, document} ->
+        # Parsing successful, what page was it?
+        cond do
+          String.match?(response.request_url, ~r/video-games-by-release-year/) ->
+            # It was the main years listing, make individual year requests
+            %Crawly.ParsedItem{
+              :items => [],
+              :requests => make_year_requests(document)
+            }
+
+          String.match?(response.request_url, ~r/\/ReleaseYear\/[0-9]+\/page/) ->
+            # It was page 2..n for a year
+            year = response.request_url |> String.replace(~r/.*\/ReleaseYear\/([0-9]+).*/, "\\1")
+
+            %Crawly.ParsedItem{
+              :items => parse_games_from_page(document, year),
+              # no new requests, all pages are in queue already
+              :requests => []
+            }
+
+          String.match?(response.request_url, ~r/\/ReleaseYear\/[0-9]+/) ->
+            # It was the first page for a year. Only generate pages requests from
+            # this and not for pages 2..n, although the dupes filter _should_ let
+            # us just regenerates pages requests for _all_ pages without actually
+            # performing the requests. Then we wouldn't need the cond clause
+            # above. Anyway, this seems safer.
+            year = response.request_url |> String.replace(~r/.*\/ReleaseYear\/([0-9]+).*/, "\\1")
+
+            %Crawly.ParsedItem{
+              :items => parse_games_from_page(document, year),
+              :requests => make_page_requests(document, year)
+            }
+        end
+
+      _ ->
+        %Crawly.ParsedItem{:items => [], :requests => []}
+    end
+  end
+
+  # Finds links to pages for listings of games for individual years from the document,
+  # and returns a list of URLs for those pages.
+  #
+  # The years probably have more than one page of games, but these will be the first pages.
+  defp make_year_requests(document) do
+    document
+    |> Floki.find(".entry-content ul li a")
+    |> Floki.attribute("href")
+    |> Enum.filter(fn x -> String.match?(x, ~r/\/ReleaseYear\/[0-9]+/) end)
+    |> Enum.map(&Crawly.Utils.request_from_url/1)
+  end
+
+  # Takes the first page of results doc, finds out how many pages the year has in total,
+  # and returns a list of URLs for pages 2..n.
+  defp make_page_requests(document, year) do
+    last_page_num =
+      document
+      |> Floki.find("a.page-numbers")
+      |> Floki.attribute("href")
+      |> Enum.map(fn s -> String.replace(s, ~r/.*\/page\/([0-9]+).*/, "\\1") end)
+      |> Enum.map(&String.to_integer/1)
+      |> Enum.sort()
+      |> List.last()
+
+    # This actually breaks the process for years with only one game, because
+    # last_page_num is nil and that's invalid. Anyway, as these years are such
+    # outliers (only a few in the 70s to early 80s) we don't care.
+    Logger.info("Making page requests for year #{year} from 2 to #{last_page_num}")
+
+    2..last_page_num
+    |> Enum.map(fn n -> "https://videogamesstats.com/ReleaseYear/#{year}/page/#{n}/" end)
+    |> Enum.map(&Crawly.Utils.request_from_url/1)
+  end
+
+  defp parse_games_from_page(document, year) do
+    document
+    |> Floki.find(".entry-content article a")
+    |> Floki.attribute("title")
+    |> Enum.uniq()
+    |> Enum.map(fn g -> %{:year => String.to_integer(year), :game => g} end)
+  end
+end
+```
+
+Now run the videogamesstats spider:
+
+```elixir
+Crawly.Engine.start_spider(GamesstatsSpider)
+```
+
+```elixir
+{:requests, req} = Crawly.RequestsStorage.requests(GamesstatsSpider)
+
+req
+|> Enum.map(&Map.get(&1, :url))
+```
+
+```elixir
+Crawly.Engine.stop_spider(GamesstatsSpider)
+```
+
+## Chart the results against number of games published
+
+First we need to load the publication data. We read everything, the dataset is not very big and this makes it simple to chart later.
+
+```elixir
+publications_per_year =
+  File.stream!(
+    "/data/GamesstatsSpider_837d495c-7738-11ee-bf8d-0242ac110002.jl",
+    [],
+    :line
+  )
+  |> Stream.map(&Poison.decode!/1)
+  |> Enum.into([])
+```
 
 ```elixir
 VegaLite.new(width: 600, height: 300)
-|> VegaLite.data_from_values(games_years, only: ["year"])
-|> VegaLite.mark(:bar)
-|> VegaLite.encode_field(:x, "year", type: :quantitative, scale: [type: :linear])
-|> VegaLite.encode(:y, aggregate: :count)
+|> VegaLite.layers([
+  VegaLite.new()
+  |> VegaLite.data_from_values(games_years, only: ["year"])
+  |> VegaLite.mark(:bar, color: "blue")
+  |> VegaLite.encode_field(:x, "year", type: :quantitative, scale: [type: :linear], title: "Year")
+  |> VegaLite.encode(:y, aggregate: :count, title: "GtG answers"),
+  VegaLite.new()
+  |> VegaLite.data_from_values(publications_per_year, only: ["year"])
+  |> VegaLite.mark(:line, color: "green")
+  |> VegaLite.encode_field(:x, "year", type: :quantitative)
+  |> VegaLite.encode(:y, aggregate: :count, title: "Published games")
+])
+|> VegaLite.resolve(:scale, y: :independent)
 ```
 
-<!-- livebook:{"offset":4957,"stamp":{"token":"XCP.mkj1FNGNAY9B6eygD6YEw4jzxY5o-bLR5dygl_tzWeOS24xmeagFA8sw6AcbadtCYwrKFWew_qppG2BY3rJGAPTmFqiq5zeWUIrGFw","version":2}} -->
+<!-- livebook:{"offset":11630,"stamp":{"token":"XCP.wd1TxiyYiXKwTYvrgcIp1B_N8Aikm95_qDm9D6fUFU9lMCS0YLgQ-F1SN-ZM_lIQ3jgSxgtNWTDBq5yS0bpAtM4e_PUrrQ3vKM2BJw","version":2}} -->
