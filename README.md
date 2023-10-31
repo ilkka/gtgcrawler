@@ -41,8 +41,9 @@ The `start-livebook.sh` script can be used to run livebook in Docker.
 ## Results
 
 This is still far removed from actual science, but there seems to be a
-correlation between the number of overall published games and the number
-of GtG puzzle answers for a given year. That makes me conclude that there
-is no significant bias towards more recent games in GtG.
+correlation between the number of overall published games (green line)
+and the number of GtG puzzle answers (blue bars) for a given year.
+That makes me conclude that there is no significant bias towards more
+recent games in GtG.
 
 ![graph showing the distribution of GtG answers vs published games per year](docs/files/visualization.png)
