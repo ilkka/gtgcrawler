@@ -28,7 +28,7 @@ Now the livebook does the following:
 
 The crawlers try to be Nice in a couple of ways:
 
-- They respect site's [robots.txt](https://en.wikipedia.org/wiki/Robots.txt) files
+- They respect sites' [robots.txt](https://en.wikipedia.org/wiki/Robots.txt) files
 - They send a User-Agent string that includes identifying information
 
 ## Running it
