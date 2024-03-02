@@ -23,7 +23,7 @@ defmodule Gtgcrawler.MixProject do
   defp deps do
     [
       {:crawly, "~> 0.16"},
-      {:floki, "~> 0.35"},
+      {:floki, "~> 0.36"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
     ]
   end
