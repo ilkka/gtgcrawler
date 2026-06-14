@@ -22,7 +22,7 @@ defmodule Gtgcrawler.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:crawly, "~> 0.16"},
+      {:crawly, "~> 0.17"},
       {:floki, "~> 0.35"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
     ]
